@@ -1,4 +1,4 @@
-For `docs/system-sds.md`, replacing fragile ASCII art with native GitHub-rendered Mermaid diagrams resolves the text-wrapping and formatting issues across viewports.
+
 
 Open **`docs/system-sds.md`** in VS Code, replace its entire content with the markdown below, and save the file (`Ctrl + S`):
 
