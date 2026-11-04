@@ -245,6 +245,3 @@ git push -u origin docs/part-c-sds
 
 ```
 
-Once pushed, open the PR targeting `sprint-staging` on GitHub so Partner B can review and approve it.
-
-Does the Mermaid formatting render cleanly in your VS Code Markdown preview (`Ctrl + Shift + V`)?
