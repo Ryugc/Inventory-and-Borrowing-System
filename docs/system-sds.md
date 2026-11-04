@@ -1,7 +1,3 @@
-
-
-Open **`docs/system-sds.md`** in VS Code, replace its entire content with the markdown below, and save the file (`Ctrl + S`):
-
 ```markdown
 # System-Level Software Design Specification (System SDS)
 ## Theme 2: Inventory and Borrowing System
