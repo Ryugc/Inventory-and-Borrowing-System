@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum Role {
+  BORROWER
+  CUSTODIAN
+}
+
+enum AssetStatus {
+  AVAILABLE
+  CHECKED_OUT
+  MAINTENANCE
+}
+
+enum BorrowRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String
+  role            Role
+  createdAt       DateTime        @default(now())
+  borrowRequests  BorrowRequest[] @relation("BorrowRequestBorrower")
+  borrowedLoans   LoanRecord[]    @relation("LoanBorrower")
+  checkedOutLoans LoanRecord[]    @relation("LoanCustodian")
+
+  @@index([email])
+}
+
+model Asset {
+  id            String          @id @default(uuid())
+  assetTag      String          @unique
+  name          String
+  category      String
+  status        AssetStatus     @default(AVAILABLE)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  borrowRequests BorrowRequest[]
+  loans          LoanRecord[]
+
+  @@index([assetTag])
+}
+
+model BorrowRequest {
+  id           String               @id @default(uuid())
+  assetId      String
+  borrowerId   String
+  status       BorrowRequestStatus  @default(PENDING)
+  requestDate  DateTime             @default(now())
+  resolvedDate DateTime?
+  asset        Asset                @relation(fields: [assetId], references: [id])
+  borrower     User                 @relation("BorrowRequestBorrower", fields: [borrowerId], references: [id])
+
+  @@index([borrowerId])
+  @@index([assetId])
+}
+
+model LoanRecord {
+  id              String      @id @default(uuid())
+  assetId         String
+  borrowerId      String
+  custodianId     String
+  checkoutDate    DateTime    @default(now())
+  dueDate         DateTime
+  returnDate      DateTime?
+  returnCondition String?
+  status          LoanStatus  @default(ACTIVE)
+  asset           Asset       @relation(fields: [assetId], references: [id])
+  borrower        User        @relation("LoanBorrower", fields: [borrowerId], references: [id])
+  custodian       User        @relation("LoanCustodian", fields: [custodianId], references: [id])
+
+  @@index([borrowerId])
+  @@index([assetId])
+  @@index([custodianId])
+}
