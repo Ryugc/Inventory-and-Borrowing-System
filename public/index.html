@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory and Borrowing System</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="httpAlert" class="http-alert hidden" role="alert" aria-live="assertive"></div>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CPE 334</p>
+        <h1>Inventory and Borrowing System</h1>
+      </div>
+      <button id="logoutButton" class="button button-ghost hidden" type="button">Sign out</button>
+    </header>
+
+    <main class="shell">
+      <section id="loginView" class="card login-card">
+        <h2>Sign in</h2>
+        <p class="muted">Select the account that matches your role.</p>
+        <form id="loginForm">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" value="borrower@ku.ac.th" required />
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" value="borrower-password" required />
+          <button class="button" type="submit">Sign in</button>
+        </form>
+        <div class="quick-login">
+          <button type="button" data-email="borrower@ku.ac.th" data-password="borrower-password">Borrower demo</button>
+          <button type="button" data-email="custodian@ku.ac.th" data-password="custodian-password">Custodian demo</button>
+        </div>
+      </section>
+
+      <section id="appView" class="hidden">
+        <div class="user-bar">
+          <div>
+            <p class="eyebrow">Signed in as</p>
+            <strong id="userName"></strong>
+            <span id="roleBadge" class="badge"></span>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="System views">
+          <button class="tab active" type="button" data-view="catalog">Catalog</button>
+          <button id="borrowerTab" class="tab" type="button" data-view="requests">My requests</button>
+          <button id="custodianTab" class="tab hidden" type="button" data-view="loans">Active loans</button>
+        </nav>
+
+        <section id="catalogPanel" class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Inventory</p>
+              <h2>Asset catalog</h2>
+            </div>
+            <button id="refreshCatalogButton" class="button button-secondary" type="button">Refresh</button>
+          </div>
+          <div id="catalogGrid" class="asset-grid"></div>
+        </section>
+
+        <section id="requestsPanel" class="panel hidden">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Borrowing</p>
+              <h2>My requests</h2>
+            </div>
+            <button id="refreshRequestsButton" class="button button-secondary" type="button">Refresh</button>
+          </div>
+          <div id="requestList" class="list"></div>
+        </section>
+
+        <section id="loansPanel" class="panel hidden">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Custodian desk</p>
+              <h2>Loans and checkout</h2>
+            </div>
+          </div>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Approval queue</p>
+              <h3>Pending Borrow Requests</h3>
+            </div>
+            <button id="refreshPendingButton" class="button button-secondary" type="button">Refresh</button>
+          </div>
+          <div id="pendingRequestList" class="list"></div>
+          <div class="section-heading active-loans-heading">
+            <div>
+              <p class="eyebrow">Checked out</p>
+              <h3>Active Loans</h3>
+            </div>
+          </div>
+          <form id="checkoutForm" class="inline-form">
+            <label for="requestId">Borrow request ID</label>
+            <input id="requestId" name="requestId" value="request-1" required />
+            <label for="dueAt">Due date</label>
+            <input id="dueAt" name="dueAt" type="date" required />
+            <button class="button" type="submit">Checkout</button>
+          </form>
+          <div id="loanList" class="list"></div>
+        </section>
+      </section>
+
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
