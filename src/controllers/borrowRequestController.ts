@@ -9,3 +9,7 @@ export function createBorrowRequest(req: Request, res: Response, next: NextFunct
 }
 
 export function listMyRequests(req: Request, res: Response): void { if (req.principal) res.status(200).json(inventoryService.listMyRequests(req.principal)); }
+
+export function listPendingRequests(_req: Request, res: Response): void {
+  res.status(200).json(inventoryService.listPendingRequests());
+}

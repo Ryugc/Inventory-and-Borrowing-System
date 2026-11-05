@@ -1,0 +1,79 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f4f7fb;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px clamp(20px, 5vw, 64px); color: white; background: #193c6d;
+}
+.topbar h1 { margin: 2px 0 0; font-size: clamp(20px, 3vw, 28px); }
+.shell { width: min(1100px, calc(100% - 40px)); margin: 32px auto 64px; }
+.card, .panel, .user-bar {
+  border: 1px solid #dde5ef; border-radius: 12px; background: white;
+  box-shadow: 0 8px 24px rgba(30, 56, 92, 0.06);
+}
+.login-card { width: min(440px, 100%); margin: 40px auto; padding: 28px; }
+.login-card h2, .panel h2 { margin: 0; }
+.muted { color: #667085; }
+form { display: grid; gap: 10px; margin-top: 20px; }
+label { font-size: 13px; font-weight: 700; color: #344054; }
+input {
+  width: 100%; min-height: 42px; padding: 10px 12px;
+  border: 1px solid #cbd5e1; border-radius: 8px; font: inherit;
+}
+.button, .quick-login button, .tab {
+  min-height: 40px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700;
+}
+.button { margin-top: 4px; padding: 10px 16px; color: white; background: #2363a8; }
+.button:hover { background: #184f88; }
+.button-secondary { color: #2363a8; border: 1px solid #b9cae0; background: white; }
+.button-ghost { color: white; border: 1px solid rgba(255,255,255,.45); background: transparent; }
+.quick-login { display: flex; gap: 8px; margin-top: 14px; }
+.quick-login button { flex: 1; padding: 8px; color: #344054; background: #edf3f8; }
+.user-bar { padding: 16px 20px; }
+.eyebrow { margin: 0; color: #64809f; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.badge { margin-left: 10px; padding: 4px 8px; border-radius: 999px; color: #2363a8; background: #e8f1fa; font-size: 12px; }
+.tabs { display: flex; gap: 8px; margin: 20px 0 12px; }
+.tab { padding: 8px 14px; color: #667085; background: transparent; }
+.tab.active { color: white; background: #193c6d; }
+.panel { min-height: 280px; padding: 22px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.asset-card { border: 1px solid #e1e7ef; border-radius: 10px; padding: 16px; }
+.asset-card h3 { margin: 8px 0 4px; font-size: 16px; }
+.asset-card p { margin: 4px 0; color: #667085; }
+.asset-card .button { width: 100%; }
+.status { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.status-available { color: #147d64; background: #e5f6f1; }
+.status-other { color: #8a5b00; background: #fff3d6; }
+.list { display: grid; gap: 10px; }
+.list-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; border: 1px solid #e1e7ef; border-radius: 9px; }
+.list-item p { margin: 3px 0; color: #667085; }
+.inline-form { grid-template-columns: 1fr 1fr auto; align-items: end; margin: 0 0 18px; }
+.inline-form .button { height: 42px; margin: 0; }
+.active-loans-heading { margin-top: 24px; }
+.notice { position: fixed; right: 20px; bottom: 20px; max-width: 420px; padding: 14px 16px; border-radius: 9px; color: white; background: #193c6d; box-shadow: 0 8px 24px rgba(30,56,92,.2); }
+.notice.error { background: #a33a3a; }
+.http-alert {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  padding: 12px 20px;
+  border-bottom: 2px solid #7d1f1f;
+  color: white;
+  background: #b42318;
+  font-weight: 800;
+  text-align: center;
+}
+.hidden { display: none !important; }
+@media (max-width: 680px) {
+  .topbar { align-items: flex-start; }
+  .shell { width: min(100% - 24px, 1100px); margin-top: 20px; }
+  .inline-form { grid-template-columns: 1fr; }
+  .list-item { align-items: flex-start; flex-direction: column; }
+}

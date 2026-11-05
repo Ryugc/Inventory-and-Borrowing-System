@@ -14,6 +14,21 @@ const pendingByAsset = new Set<string>();
 
 export const inventoryService = {
   listAssets(): AssetDto[] { return [...assets.values()]; },
+  listPendingRequests(): Array<BorrowRequestDto & { asset: AssetDto; borrower: { id: string; email: string } }> {
+    return [...requests.values()]
+      .filter(request => request.status === BorrowRequestStatus.PENDING)
+      .map(request => {
+        const asset = assets.get(request.assetId);
+        return {
+          ...request,
+          asset: asset ?? { id: request.assetId, assetTag: "Unknown", name: "Unknown asset", category: "Unknown", status: AssetStatus.MAINTENANCE, createdAt: now(), updatedAt: now() },
+          borrower: {
+            id: request.borrowerId,
+            email: request.borrowerId === "borrower-1" ? "borrower@ku.ac.th" : `${request.borrowerId}@ku.ac.th`
+          }
+        };
+      });
+  },
   createRequest(assetId: string, principal: AuthPrincipal): BorrowRequestDto {
     if (!assets.has(assetId)) throw new HttpError(404, "Asset not found");
     const asset = assets.get(assetId)!;

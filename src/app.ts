@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import { authRouter } from "./routes/auth.routes.js";
 import { assetsRouter } from "./routes/assets.routes.js";
 import { borrowRequestsRouter } from "./routes/borrowRequests.routes.js";
@@ -7,6 +8,7 @@ import { errorHandler } from "./middleware/error.js";
 
 export const app = express();
 app.use(express.json());
+app.use(express.static(path.join(process.cwd(), "public")));
 
 app.use("/auth", authRouter);
 app.use("/assets", assetsRouter);
