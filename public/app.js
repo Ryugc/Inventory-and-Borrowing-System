@@ -1,4 +1,4 @@
-const state = { token: null, role: null, user: null };
+﻿const state = { token: null, role: null, user: null };
 
 const $ = (selector) => document.querySelector(selector);
 const notice = $("#notice");
@@ -165,7 +165,7 @@ $("#loginForm").addEventListener("submit", async (event) => {
 document.querySelectorAll(".quick-login button").forEach((button) => {
   button.addEventListener("click", () => {
     $("#email").value = button.dataset.email;
-    $("#password").value = button.dataset.password;
+    $("#password").value = ""; $("#password").focus();
   });
 });
 

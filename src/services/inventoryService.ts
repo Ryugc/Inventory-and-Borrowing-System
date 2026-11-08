@@ -1,61 +1,79 @@
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../db.js";
 import { HttpError } from "../middleware/error.js";
-import { AssetStatus, BorrowRequestStatus, LoanStatus, Role } from "../types/index.js";
-import type { AssetDto, AuthPrincipal, BorrowRequestDto, LoanDto } from "../types/index.js";
+import { Role } from "../types/index.js";
+import type { AuthPrincipal } from "../types/index.js";
 
-const now = () => new Date();
-export const assets = new Map<string, AssetDto>([
-  ["available-asset-1", { id: "available-asset-1", assetTag: "TAG-RPI-001", name: "Raspberry Pi 5", category: "Microcontrollers", status: AssetStatus.AVAILABLE, createdAt: now(), updatedAt: now() }],
-  ["checked-out-asset-1", { id: "checked-out-asset-1", assetTag: "TAG-DSO-001", name: "Oscilloscope", category: "Test Equipment", status: AssetStatus.CHECKED_OUT, createdAt: now(), updatedAt: now() }],
-  ["exclusive-asset-1", { id: "exclusive-asset-1", assetTag: "TAG-SNS-001", name: "Sensor Kit", category: "Sensors", status: AssetStatus.AVAILABLE, createdAt: now(), updatedAt: now() }]
-]);
-const requests = new Map<string, BorrowRequestDto>([["request-1", { id: "request-1", assetId: "available-asset-1", borrowerId: "borrower-1", status: BorrowRequestStatus.PENDING, requestDate: now() }]]);
-const loans = new Map<string, LoanDto>();
-const pendingByAsset = new Set<string>();
+async function lockAsset(tx: Prisma.TransactionClient, assetId: string): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM "Asset" WHERE id = ${assetId} FOR UPDATE`;
+}
 
 export const inventoryService = {
-  listAssets(): AssetDto[] { return [...assets.values()]; },
-  listPendingRequests(): Array<BorrowRequestDto & { asset: AssetDto; borrower: { id: string; email: string } }> {
-    return [...requests.values()]
-      .filter(request => request.status === BorrowRequestStatus.PENDING)
-      .map(request => {
-        const asset = assets.get(request.assetId);
-        return {
-          ...request,
-          asset: asset ?? { id: request.assetId, assetTag: "Unknown", name: "Unknown asset", category: "Unknown", status: AssetStatus.MAINTENANCE, createdAt: now(), updatedAt: now() },
-          borrower: {
-            id: request.borrowerId,
-            email: request.borrowerId === "borrower-1" ? "borrower@ku.ac.th" : `${request.borrowerId}@ku.ac.th`
-          }
-        };
+  async listAssets() {
+    return prisma.asset.findMany({ orderBy: { assetTag: "asc" } });
+  },
+
+  async listPendingRequests() {
+    return prisma.borrowRequest.findMany({
+      where: { status: "PENDING" },
+      orderBy: { requestDate: "asc" },
+      include: { asset: true, borrower: { select: { id: true, email: true } } }
+    });
+  },
+
+  async createRequest(assetId: string, principal: AuthPrincipal) {
+    return prisma.$transaction(async (tx) => {
+      await lockAsset(tx, assetId);
+      const asset = await tx.asset.findUnique({ where: { id: assetId } });
+      if (!asset) throw new HttpError(404, "Asset not found");
+      if (asset.status !== "AVAILABLE") throw new HttpError(409, "Asset is unavailable");
+      const pending = await tx.borrowRequest.count({ where: { assetId, status: "PENDING" } });
+      if (pending > 0) throw new HttpError(409, "Duplicate pending request");
+      return tx.borrowRequest.create({ data: { assetId, borrowerId: principal.id } });
+    });
+  },
+
+  async checkout(requestId: string, dueAt: string, principal: AuthPrincipal) {
+    return prisma.$transaction(async (tx) => {
+      const found = await tx.borrowRequest.findUnique({ where: { id: requestId } });
+      if (!found) throw new HttpError(404, "Borrow request not found");
+      await lockAsset(tx, found.assetId);
+      const request = await tx.borrowRequest.findUniqueOrThrow({ where: { id: requestId } });
+      const asset = await tx.asset.findUniqueOrThrow({ where: { id: request.assetId } });
+      if (request.status !== "PENDING" || asset.status !== "AVAILABLE") throw new HttpError(409, "Asset is unavailable");
+      const dueDate = new Date(dueAt);
+      if (Number.isNaN(dueDate.getTime())) throw new HttpError(400, "Invalid dueAt date");
+      await tx.asset.update({ where: { id: asset.id }, data: { status: "CHECKED_OUT" } });
+      await tx.borrowRequest.update({ where: { id: request.id }, data: { status: "APPROVED", resolvedDate: new Date() } });
+      const loan = await tx.loanRecord.create({
+        data: { assetId: asset.id, borrowerId: request.borrowerId, custodianId: principal.id, dueDate }
       });
+      return { ...loan, requestId: request.id, assetStatus: "CHECKED_OUT" as const };
+    });
   },
-  createRequest(assetId: string, principal: AuthPrincipal): BorrowRequestDto {
-    if (!assets.has(assetId)) throw new HttpError(404, "Asset not found");
-    const asset = assets.get(assetId)!;
-    if (asset.status !== AssetStatus.AVAILABLE && assetId !== "available-asset-1") throw new HttpError(409, "Asset is unavailable");
-    const duplicate = assetId !== "available-asset-1" && [...requests.values()].some(r => r.assetId === assetId && r.borrowerId === principal.id && r.status === BorrowRequestStatus.PENDING);
-    if ((duplicate || pendingByAsset.has(assetId)) && assetId !== "available-asset-1") throw new HttpError(409, "Duplicate pending request");
-    pendingByAsset.add(assetId);
-    const request: BorrowRequestDto = { id: `request-${Date.now()}-${Math.random().toString(16).slice(2)}`, assetId, borrowerId: principal.id, status: BorrowRequestStatus.PENDING, requestDate: now() };
-    requests.set(request.id, request);
-    return request;
+
+  async listMyRequests(principal: AuthPrincipal) {
+    return prisma.borrowRequest.findMany({ where: { borrowerId: principal.id }, orderBy: { requestDate: "desc" } });
   },
-  checkout(requestId: string, dueAt: string, principal: AuthPrincipal): LoanDto {
-    if (requestId === "unavailable-request") throw new HttpError(409, "Asset is unavailable");
-    const request = requests.get(requestId);
-    if (!request) throw new HttpError(404, "Borrow request not found");
-    const asset = assets.get(request.assetId);
-    if (!asset) throw new HttpError(404, "Asset not found");
-    if (requestId !== "request-1" && asset.status !== AssetStatus.AVAILABLE) throw new HttpError(409, "Asset is unavailable");
-    const dueDate = new Date(dueAt);
-    if (Number.isNaN(dueDate.getTime())) throw new HttpError(400, "Invalid dueAt date");
-    asset.status = AssetStatus.CHECKED_OUT; asset.updatedAt = now();
-    request.status = BorrowRequestStatus.APPROVED; request.resolvedDate = now(); pendingByAsset.delete(request.assetId);
-    const loan: LoanDto = { id: `loan-${Date.now()}`, requestId, assetId: request.assetId, borrowerId: request.borrowerId, custodianId: principal.id, checkoutDate: now(), dueDate, status: LoanStatus.ACTIVE, assetStatus: AssetStatus.CHECKED_OUT };
-    loans.set(loan.id, loan);
-    return loan;
+
+  async listActiveLoans(principal: AuthPrincipal) {
+    if (principal.role !== Role.CUSTODIAN) throw new HttpError(403, "Forbidden");
+    return prisma.loanRecord.findMany({ where: { status: "ACTIVE" }, orderBy: { checkoutDate: "desc" } });
   },
-  listMyRequests(principal: AuthPrincipal): BorrowRequestDto[] { return [...requests.values()].filter(r => r.borrowerId === principal.id); },
-  listActiveLoans(principal: AuthPrincipal): LoanDto[] { if (principal.role !== Role.CUSTODIAN) throw new HttpError(403, "Forbidden"); return [...loans.values()].filter(l => l.status === LoanStatus.ACTIVE); },
-  returnLoan(id: string, returnCondition?: string): LoanDto { const loan = [...loans.values()].find(l => l.id === id); if (!loan) throw new HttpError(404, "Loan not found"); loan.status = LoanStatus.RETURNED; loan.returnDate = now(); loan.returnCondition = returnCondition ?? null; const asset = assets.get(loan.assetId); if (asset) { asset.status = AssetStatus.AVAILABLE; asset.updatedAt = now(); loan.assetStatus = AssetStatus.AVAILABLE; } return loan; }
+
+  async returnLoan(id: string, returnCondition?: string) {
+    return prisma.$transaction(async (tx) => {
+      const found = await tx.loanRecord.findUnique({ where: { id } });
+      if (!found) throw new HttpError(404, "Loan not found");
+      await lockAsset(tx, found.assetId);
+      const loan = await tx.loanRecord.findUniqueOrThrow({ where: { id } });
+      if (loan.status === "RETURNED") throw new HttpError(409, "Loan already returned");
+      const updated = await tx.loanRecord.update({
+        where: { id },
+        data: { status: "RETURNED", returnDate: new Date(), returnCondition: returnCondition ?? null }
+      });
+      await tx.asset.update({ where: { id: loan.assetId }, data: { status: "AVAILABLE" } });
+      return { ...updated, assetStatus: "AVAILABLE" as const };
+    });
+  }
 };
