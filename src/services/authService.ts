@@ -1,19 +1,33 @@
 import bcrypt from "bcrypt";
+import { createHash, randomBytes } from "node:crypto";
+import { prisma } from "../db.js";
 import { HttpError } from "../middleware/error.js";
 import { Role } from "../types/index.js";
 import type { AuthPrincipal, AuthTokenResponse, LoginRequest } from "../types/index.js";
 
-const accounts = new Map<string, { principal: AuthPrincipal; password: string }>([
-  ["borrower@ku.ac.th", { principal: { id: "borrower-1", email: "borrower@ku.ac.th", role: Role.BORROWER }, password: "borrower-password" }],
-  ["custodian@ku.ac.th", { principal: { id: "custodian-1", email: "custodian@ku.ac.th", role: Role.CUSTODIAN }, password: "custodian-password" }]
-]);
+const SESSION_HOURS = 8;
+
+export const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
 export const authService = {
   async login(input: LoginRequest): Promise<AuthTokenResponse> {
-    const account = accounts.get(input.email.toLowerCase());
-    if (!account || input.password !== account.password) throw new HttpError(401, "Invalid credentials");
-    await bcrypt.hash(input.password, 10);
-    const role = account.principal.role;
-    return { token: role === Role.CUSTODIAN ? "custodian-token" : "borrower-token", role, user: account.principal };
+    const email = String(input?.email ?? "").toLowerCase();
+    const password = String(input?.password ?? "");
+    const user = await prisma.user.findUnique({ where: { email } });
+    const valid = user ? await bcrypt.compare(password, user.passwordHash) : false;
+    if (!user || !valid) throw new HttpError(401, "Invalid credentials");
+
+    const token = randomBytes(32).toString("hex");
+    await prisma.session.create({
+      data: { tokenHash: hashToken(token), userId: user.id, expiresAt: new Date(Date.now() + SESSION_HOURS * 3600 * 1000) }
+    });
+    const principal: AuthPrincipal = { id: user.id, email: user.email, role: Role[user.role] };
+    return { token, role: principal.role, user: principal };
+  },
+
+  async authenticate(token: string): Promise<AuthPrincipal | null> {
+    const session = await prisma.session.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } });
+    if (!session || session.expiresAt < new Date()) return null;
+    return { id: session.user.id, email: session.user.email, role: Role[session.user.role] };
   }
 };
