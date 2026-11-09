@@ -11,7 +11,7 @@ export const app = express();
 app.use(express.json());
 app.get("/api/health", (_req, res) => { res.json({ status: "ok" }); });
 app.get("/api/ready", async (_req, res) => {
-  try { await prisma.$queryRaw`SELECT 1`; res.json({ status: "ready" }); }
+  try { await prisma.$queryRaw`SELECT 1`; res.json({ status: "ready", db: "connected" }); }
   catch { res.status(503).json({ status: "unavailable" }); }
 });
 app.use(express.static(path.join(process.cwd(), "public")));
@@ -25,4 +25,3 @@ app.use("/api/assets", assetsRouter);
 app.use("/api/borrow-requests", borrowRequestsRouter);
 app.use("/api/loans", loansRouter);
 app.use(errorHandler);
-
