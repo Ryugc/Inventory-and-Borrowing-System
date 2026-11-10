@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# TokTickIT — Google Cloud Run & Cloud SQL Teardown Script
+# Inventory Borrowing System — Google Cloud Run & Cloud SQL Teardown Script
 # ==============================================================================
 # Usage:
 #   ./deploy/teardown.sh
@@ -54,19 +54,19 @@ fi
 # ------------------------------------------------------------------------------
 # Resource names (CHANGE ME: must match deploy/deploy.sh)
 # ------------------------------------------------------------------------------
-REPO_NAME="toktickit"
-SQL_INSTANCE="toktickit-pg"
-SERVICE_NAME="toktickit"
-MIGRATE_JOB_NAME="toktickit-migrate"
-SA_NAME="toktickit-runner"
+REPO_NAME="inventory"
+SQL_INSTANCE="inventory-pg"
+SERVICE_NAME="inventory"
+MIGRATE_JOB_NAME="inventory-migrate"
+SA_NAME="inventory-runner"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
-SECRET_DB_URL="toktickit-database-url"
-SECRET_ADMIN_PASS="toktickit-admin-password"
-SECRET_DEMO_PASS="toktickit-demo-password"
+SECRET_DB_URL="inventory-database-url"
+SECRET_ADMIN_PASS="inventory-admin-password"
+SECRET_DEMO_PASS="inventory-demo-password"
 
 echo "=================================================================="
-echo "WARNING: This will permanently delete TokTickIT resources in:"
+echo "WARNING: This will permanently delete Inventory Borrowing System resources in:"
 echo "  Project : ${PROJECT_ID}"
 echo "  Region  : ${REGION}"
 echo "Resources to be deleted:"
