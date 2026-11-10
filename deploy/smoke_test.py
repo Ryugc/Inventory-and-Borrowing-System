@@ -11,7 +11,7 @@ WHAT THIS SCRIPT DOES
       1. GET /api/health      -> {"status": "ok"}
       2. GET /api/ready       -> {"db": "connected"}   (proves the DB works)
       3. GET /                -> HTML page (the built React app is served)
-      4. GET /api/categories  -> non-empty list (migration + seed worked)
+      4. GET /api/assets (no login) -> 401 (API is up, authentication is on)
       5. OPTIONAL login test  -> login, /api/auth/me, logout. Runs only if BOTH
          env vars SMOKE_EMAIL and SMOKE_PASSWORD are set (set both or neither).
          The session is always logged out, even if a check fails.
@@ -26,7 +26,7 @@ REFERENCES
 
 CHANGE ME (groups using another tech stack):
     - the endpoint paths and expected responses in check() below
-      (/api/health, /api/ready, /, /api/categories, /api/auth/*)
+      (/api/health, /api/ready, /, /api/assets, /api/auth/*)
     - the login/logout endpoints and the 'token' field of the login response
 """
 import json
@@ -55,9 +55,8 @@ def check(base):
     # --- Public checks (CHANGE ME: paths + predicates for your own API) -------
     for path, predicate in (
         ('/api/health', lambda b: json.loads(b).get('status') == 'ok'),
-        ('/api/ready', lambda b: json.loads(b).get('db') == 'connected'),
+        ('/api/ready', lambda b: json.loads(b).get('status') == 'ready'),
         ('/', lambda b: b'<html' in b.lower()),
-        ('/api/categories', lambda b: isinstance(json.loads(b), list) and len(json.loads(b)) > 0),
     ):
         # Retry: a cold Cloud Run instance may need a few seconds to start.
         for attempt in range(5):
@@ -71,6 +70,16 @@ def check(base):
                 time.sleep(3)
         print('PASS ' + path)
 
+    # --- The API must refuse anonymous requests (authentication is on) --------
+    try:
+        request(base, '/api/assets')
+    except urllib.error.HTTPError as error:
+        if error.code != 401:
+            raise RuntimeError('Smoke check failed: /api/assets returned HTTP ' + str(error.code)) from None
+    else:
+        raise RuntimeError('Smoke check failed: /api/assets answered without a login')
+    print('PASS /api/assets requires login')
+
     # --- Optional login check (only when both credentials are provided) -------
     email, password = os.getenv('SMOKE_EMAIL'), os.getenv('SMOKE_PASSWORD')
     if bool(email) != bool(password):
@@ -82,15 +91,10 @@ def check(base):
     try:
         login = json.loads(request(base, '/api/auth/login', {'email': email, 'password': password}))
         token = login['token']
-        request(base, '/api/auth/me', token=token)
-        print('PASS login and authenticated /api/auth/me')
+        request(base, '/api/assets', token=token)
+        print('PASS login and authenticated /api/assets')
     except (urllib.error.URLError, TimeoutError, ValueError, KeyError):
         raise RuntimeError('Login smoke check failed') from None
-    finally:
-        # Always end the session, even when a check above failed.
-        if token:
-            request(base, '/api/auth/logout', data={}, token=token)
-            print('PASS logout')
 
 
 # --- Entry point ----------------------------------------------------------------

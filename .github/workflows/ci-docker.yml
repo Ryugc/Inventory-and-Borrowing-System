@@ -60,10 +60,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://inventory:inventory123@localhost:5432/inventory_test?schema=public
           TEST_DATABASE_URL: postgresql://inventory:inventory123@localhost:5432/inventory_test?schema=public
-          JWT_SECRET: local-dev-secret-key-32-chars-long!
         run: |
           npm ci
-          npx prisma db push --skip-generate
+          npx prisma migrate deploy
           npm run build
           npm test
 
