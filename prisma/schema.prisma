@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -40,6 +40,7 @@ model User {
   borrowRequests  BorrowRequest[] @relation("BorrowRequestBorrower")
   borrowedLoans   LoanRecord[]    @relation("LoanBorrower")
   checkedOutLoans LoanRecord[]    @relation("LoanCustodian")
+  sessions        Session[]
 
   @@index([email])
 }
@@ -89,4 +90,16 @@ model LoanRecord {
   @@index([borrowerId])
   @@index([assetId])
   @@index([custodianId])
+}
+
+
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

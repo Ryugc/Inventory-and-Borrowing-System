@@ -3,13 +3,31 @@ import { PrismaClient, Role, AssetStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
+}
+
+async function upsertUser(email: string, password: string, role: Role): Promise<void> {
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.upsert({
+    where: { email },
+    update: { passwordHash },
+    create: { email, passwordHash, role }
+  });
+}
+
 async function main(): Promise<void> {
-  const borrowerHash = await bcrypt.hash("borrower-password", 10);
-  const custodianHash = await bcrypt.hash("custodian-password", 10);
+  // First administrator (always created)
+  await upsertUser("custodian@ku.ac.th", requireEnv("ADMIN_PASSWORD"), Role.CUSTODIAN);
 
-  await prisma.user.upsert({ where: { email: "borrower@ku.ac.th" }, update: { passwordHash: borrowerHash }, create: { email: "borrower@ku.ac.th", passwordHash: borrowerHash, role: Role.BORROWER } });
-  await prisma.user.upsert({ where: { email: "custodian@ku.ac.th" }, update: { passwordHash: custodianHash }, create: { email: "custodian@ku.ac.th", passwordHash: custodianHash, role: Role.CUSTODIAN } });
+  // Demo borrower, only when SEED_DEMO_DATA=true
+  if (process.env.SEED_DEMO_DATA === "true") {
+    await upsertUser("borrower@ku.ac.th", requireEnv("DEMO_USER_PASSWORD"), Role.BORROWER);
+  }
 
+  // Reference data
   await prisma.asset.upsert({ where: { assetTag: "TAG-RPI-001" }, update: {}, create: { assetTag: "TAG-RPI-001", name: "Raspberry Pi 5", category: "Microcontrollers", status: AssetStatus.AVAILABLE } });
   await prisma.asset.upsert({ where: { assetTag: "TAG-DSO-001" }, update: {}, create: { assetTag: "TAG-DSO-001", name: "Oscilloscope", category: "Test Equipment", status: AssetStatus.AVAILABLE } });
   await prisma.asset.upsert({ where: { assetTag: "TAG-SNS-001" }, update: {}, create: { assetTag: "TAG-SNS-001", name: "Sensor Kit", category: "Sensors", status: AssetStatus.AVAILABLE } });
