@@ -51,11 +51,6 @@
 
 name: Deploy demo
 
-# ------------------------------------------------------------------------------
-# Triggers
-#   push to main      : automatic deploy
-#   workflow_dispatch : manual run; `image_tag` = rollback target (optional)
-# ------------------------------------------------------------------------------
 on:
   push:
     branches: [main]
@@ -67,28 +62,18 @@ on:
         required: false
         default: ''
 
-# Least privilege by default; the deploy job adds `id-token: write` below.
 permissions:
   contents: read
 
-# Queue releases; do not interrupt a running migration or deployment.
 concurrency:
   group: deploy-demo
   cancel-in-progress: false
 
 jobs:
-  # ----------------------------------------------------------------------------
-  # Job 1: run the CI workflow (its job id is `test-and-docker`).
-  # Skipped for rollbacks (image_tag set) and for anything that is not `main`.
-  # ----------------------------------------------------------------------------
   test:
     if: github.ref == 'refs/heads/main' && !inputs.image_tag
     uses: ./.github/workflows/ci-docker.yml
 
-  # ----------------------------------------------------------------------------
-  # Job 2: build, migrate, deploy, smoke-test.
-  # ⭐ IMPORTANT: only runs if tests passed (or this is a manual rollback).
-  # ----------------------------------------------------------------------------
   deploy:
     needs: test
     if: >-
@@ -97,33 +82,22 @@ jobs:
        (github.event_name == 'workflow_dispatch' && inputs.image_tag != '' && needs.test.result == 'skipped'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # ⚠️ Do not rename: GitHub environment holding the GCP variables/secrets.
     environment: demo
     permissions:
       contents: read
-      id-token: write # required for keyless Google Cloud login (WIF)
+      id-token: write
     env:
-      # ⚠️ Variable names GCP_PROJECT_ID / GCP_REGION must not change.
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION }}
-      # CHANGE ME: names of your Cloud Run service and migration job.
       SERVICE_NAME: inventory
       MIGRATE_JOB_NAME: inventory-migrate
-      # Image tag = commit SHA (or the rollback SHA that was typed in).
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
       ROLLBACK: ${{ inputs.image_tag != '' }}
     steps:
-      # ------------------------------------------------------------------------
-      # 1. Get the source code (no git credentials kept on the runner)
-      # ------------------------------------------------------------------------
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # ------------------------------------------------------------------------
-      # 2. Fail early if settings are missing or the tag is not a full SHA
-      #    ⚠️ Variable names WIF_PROVIDER / WIF_SERVICE_ACCOUNT must not change.
-      # ------------------------------------------------------------------------
       - name: Validate deployment settings
         env:
           WIF_PROVIDER: ${{ vars.WIF_PROVIDER }}
@@ -133,10 +107,6 @@ jobs:
           test -n "$WIF_PROVIDER" && test -n "$WIF_SERVICE_ACCOUNT"
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || { echo 'Image tag must be a full 40-character commit SHA.'; exit 1; }
 
-      # ------------------------------------------------------------------------
-      # 3. Log in to Google Cloud with Workload Identity Federation (no key file)
-      #    ⭐ IMPORTANT: this is why no service-account JSON is stored in GitHub.
-      # ------------------------------------------------------------------------
       - name: Authenticate to Google Cloud without a key
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
@@ -144,31 +114,17 @@ jobs:
           service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
-      # ------------------------------------------------------------------------
-      # 4. Build and push the image (skipped for rollbacks)
-      #    CHANGE ME: image path `.../toktickit/toktickit` must match the
-      #    Artifact Registry repo and service names (see deploy/release.sh).
-      # ------------------------------------------------------------------------
       - name: Build and push image
         if: env.ROLLBACK != 'true'
         run: |
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
-          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/toktickit/toktickit:$IMAGE_TAG"
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/inventory/inventory:$IMAGE_TAG"
           docker build --tag "$IMAGE" .
           docker push "$IMAGE"
 
-      # ------------------------------------------------------------------------
-      # 5. Verify image -> run migration job -> update the Cloud Run service
-      #    (all logic lives in deploy/release.sh). Exports SERVICE_URL and
-      #    DEPLOYED_IMAGE for the next steps.
-      # ------------------------------------------------------------------------
       - name: Verify image, migrate and deploy
         run: bash deploy/release.sh
 
-      # ------------------------------------------------------------------------
-      # 6. Smoke test the live URL
-      #    CHANGE ME: Python setup + script if you use another smoke test.
-      # ------------------------------------------------------------------------
       - name: Setup Python 3.14
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -176,22 +132,18 @@ jobs:
 
       - name: Smoke test public URL
         env:
-          # Optional login check: set BOTH (variable + secret) or neither.
           SMOKE_EMAIL: ${{ vars.SMOKE_EMAIL }}
           SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
         run: python3 deploy/smoke_test.py "$SERVICE_URL"
 
-      # ------------------------------------------------------------------------
-      # 7. Deployment summary shown on the workflow run page
-      # ------------------------------------------------------------------------
       - name: Record deployment
         run: |
           {
-            echo '### TokTickIT demo deployment'
+            echo '### Inventory & Borrowing System demo deployment'
             echo "- Commit image tag: \`$IMAGE_TAG\`"
             echo "- Digest: \`$DEPLOYED_IMAGE\`"
             echo "- Rollback: $ROLLBACK"
             echo "- URL: $SERVICE_URL"
-            echo '- Smoke test: passed (health, readiness/DB, HTML, categories).'
+            echo '- Smoke test: passed (health, readiness/DB, HTML).'
             echo '- See smoke step for optional login check status.'
           } >> "$GITHUB_STEP_SUMMARY"
