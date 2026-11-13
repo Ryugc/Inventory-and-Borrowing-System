@@ -27,7 +27,29 @@ Only `.env.example` (placeholders) is committed. `.env` is in `.gitignore`.
 - Run: `npm start`
 
 ## GCP resources
-_To be filled in Step 5._
+- **GCP Project:** `CPE334 Team Top 2` (`cpe334-team-top-2`)
+- **Region:** `asia-southeast1` (Singapore)
+- **Artifact Registry Repository:** `inventory` (`asia-southeast1-docker.pkg.dev/cpe334-team-top-2/inventory/inventory`)
+- **Cloud Run Service:** `inventory` (Port `3000`, `NODE_ENV=production`, `TZ=Asia/Bangkok`)
+- **Cloud Run Migration Job:** `inventory-migrate`
+- **Secret Manager Secrets:** `inventory-database-url` (mounted as `DATABASE_URL`), plus `ADMIN_PASSWORD` and `DEMO_USER_PASSWORD`
+- **Deployer Service Account (Workload Identity Federation):** `inventory-deployer@cpe334-team-top-2.iam.gserviceaccount.com`
+- **Live Cloud Run URLs:**
+  - `https://inventory-ftuxc6vyna-as.a.run.app`
+  - `https://inventory-440201626365.asia-southeast1.run.app`
 
 ## Release procedure
-_To be filled in Step 7._
+1. **Branch & PR Promotion (`feature/docs` -> `sprint-staging` -> `main`):**
+   - Open a Pull Request from the feature/docs branch into `sprint-staging`, wait for `CI & Docker Build / test-and-docker` to pass, obtain teammate approval, and merge.
+   - Open a Release Pull Request from `sprint-staging` into `main`, wait for `CI & Docker Build / test-and-docker` to pass, obtain teammate approval, and merge.
+2. **Automated CD Pipeline (`.github/workflows/deploy.yml` — `Deploy demo`):**
+   - Merging to `main` automatically triggers the `Deploy demo` workflow:
+     1. Runs `test / test-and-docker` to verify tests and the Docker build.
+     2. Authenticates to Google Cloud via Workload Identity Federation (`inventory-deployer@cpe334-team-top-2.iam.gserviceaccount.com`).
+     3. Builds and pushes an immutable Docker image tagged with the 40-character `GITHUB_SHA` to `asia-southeast1-docker.pkg.dev/cpe334-team-top-2/inventory/inventory:<SHA>`.
+     4. Executes the `inventory-migrate` Cloud Run Job to apply database migrations and deploys the new image digest to the `inventory` Cloud Run service (`100%` traffic).
+     5. Runs live smoke tests against the public Cloud Run URL (`health`, `readiness/DB`, and HTML).
+3. **Rollback & Roll-Forward Procedure:**
+   - Find the target immutable 40-character commit SHA in Artifact Registry (`inventory/inventory`) or a previous green `Deploy demo` run summary (e.g., Release A baseline `cfecbc7877092eb79d9b29b8cc0094837ed89c51`).
+   - Open **GitHub -> Actions -> `Deploy demo` -> `Run workflow`** on branch `main`, enter the target 40-character commit SHA, and click **Run workflow**.
+   - Confirm the workflow summary reports `Rollback: true`, verifies the expected container digest, and passes the live smoke test. Repeat with a newer commit SHA to roll forward.
