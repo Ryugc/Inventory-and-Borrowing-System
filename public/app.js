@@ -82,7 +82,7 @@ async function loadRequests() {
     $("#requestList").innerHTML = requests.length ? requests.map((request) => `
       <article class="list-item">
         <div>
-          <strong>${escapeHtml(request.assetId)}</strong>
+          <strong>${escapeHtml(request.asset ? request.asset.name + " (" + request.asset.assetTag + ")" : request.assetId)}</strong>
           <p>Requested ${formatDate(request.requestDate)}</p>
         </div>
         <span class="status status-other">${escapeHtml(request.status)}</span>
@@ -98,7 +98,7 @@ async function loadLoans() {
     $("#loanList").innerHTML = loans.length ? loans.map((loan) => `
       <article class="list-item">
         <div>
-          <strong>${escapeHtml(loan.assetId)}</strong>
+          <strong>${escapeHtml(loan.asset ? loan.asset.name + " (" + loan.asset.assetTag + ")" : loan.assetId)}</strong>
           <p>Loan ${escapeHtml(loan.id)} · Due ${formatDate(loan.dueDate)}</p>
         </div>
         <button class="button button-secondary return-button" type="button" data-id="${escapeHtml(loan.id)}">Return</button>

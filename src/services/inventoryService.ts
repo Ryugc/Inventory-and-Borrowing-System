@@ -53,12 +53,12 @@ export const inventoryService = {
   },
 
   async listMyRequests(principal: AuthPrincipal) {
-    return prisma.borrowRequest.findMany({ where: { borrowerId: principal.id }, orderBy: { requestDate: "desc" } });
+    return prisma.borrowRequest.findMany({ where: { borrowerId: principal.id }, orderBy: { requestDate: "desc" }, include: { asset: { select: { name: true, assetTag: true } } } });
   },
 
   async listActiveLoans(principal: AuthPrincipal) {
     if (principal.role !== Role.CUSTODIAN) throw new HttpError(403, "Forbidden");
-    return prisma.loanRecord.findMany({ where: { status: "ACTIVE" }, orderBy: { checkoutDate: "desc" } });
+    return prisma.loanRecord.findMany({ where: { status: "ACTIVE" }, orderBy: { checkoutDate: "desc" }, include: { asset: { select: { name: true, assetTag: true } } } });
   },
 
   async returnLoan(id: string, returnCondition?: string) {
