@@ -77,3 +77,8 @@ input {
   .inline-form { grid-template-columns: 1fr; }
   .list-item { align-items: flex-start; flex-direction: column; }
 }
+
+#checkoutForm { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+#checkoutForm .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 220px; }
+#checkoutForm .field input { width: 100%; box-sizing: border-box; }
+#checkoutForm button { flex: 0 0 auto; }
