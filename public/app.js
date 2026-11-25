@@ -68,7 +68,7 @@ async function loadCatalog() {
           <h3>${escapeHtml(asset.name)}</h3>
           <p>${escapeHtml(asset.assetTag)} · ${escapeHtml(asset.category)}</p>
           ${state.role === "BORROWER"
-            ? `<button class="button request-button" type="button" data-id="${escapeHtml(asset.id)}" ${available ? "" : "disabled"}>Request</button>`
+            ? `<button class="button request-button" type="button" data-id="${escapeHtml(asset.id)}">Request</button>`
             : ""}
           ${state.role === "CUSTODIAN" && asset.status !== "CHECKED_OUT"
             ? `<button class="button button-secondary asset-status-button" type="button" data-id="${escapeHtml(asset.id)}" data-status="${nextStatus}">Set ${nextStatus === "MAINTENANCE" ? "Maintenance" : "Available"}</button>`
@@ -151,6 +151,7 @@ function enterApp(session) {
   $("#borrowerTab").classList.toggle("hidden", session.role !== "BORROWER");
   $("#custodianTab").classList.toggle("hidden", session.role !== "CUSTODIAN");
   $("#assetForm").classList.toggle("hidden", session.role !== "CUSTODIAN");
+  $("#borrowRequestInfo").classList.toggle("hidden", session.role !== "BORROWER");
   switchView("catalog");
   loadCatalog();
   if (session.role === "CUSTODIAN") {
