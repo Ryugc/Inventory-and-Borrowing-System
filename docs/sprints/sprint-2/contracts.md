@@ -78,3 +78,4 @@ Sources: `docs/srs.md`, `docs/features.md`, `docs/traceability.md`, `docs/system
 | Version | Date | Change | Commit |
 | :--- | :--- | :--- | :--- |
 | `v2.0-draft` | 2026-11-25 | Pre-implementation Sprint 2 contracts (`C-06` to `C-08`) and STS specifications added; `F-15` deferred per `CHG-01` | *fill after commit* |
+| `v2.0` | 2026-11-25 | C-07 checkout URL aligned to the existing Sprint 1 `POST /api/borrow-requests/:id/checkout` route | pending |

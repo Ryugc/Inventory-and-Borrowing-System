@@ -57,6 +57,21 @@
             </div>
             <button id="refreshCatalogButton" class="button button-secondary" type="button">Refresh</button>
           </div>
+          <form id="assetForm" class="asset-admin-form hidden">
+            <div class="field">
+              <label for="assetTag">Asset tag</label>
+              <input id="assetTag" name="assetTag" required />
+            </div>
+            <div class="field">
+              <label for="assetName">Name</label>
+              <input id="assetName" name="name" required />
+            </div>
+            <div class="field">
+              <label for="assetCategory">Category</label>
+              <input id="assetCategory" name="category" required />
+            </div>
+            <button class="button" type="submit">Add Equipment</button>
+          </form>
           <div id="catalogGrid" class="asset-grid"></div>
         </section>
 
