@@ -80,3 +80,4 @@ Exam period (1–11 Dec) is reserved for fixes and submission prep only. Sprint 
 
 ## 7. Change log
 - v0.1: initial plan. Record justified scope changes here instead of editing history.
+- `v0.2` (2026-11-25 — `CHG-01`): Formally deferred proposed feature `F-15` (Request Rejection and Cancellation, unfinalized `FR-13`/`FR-14`) out of Sprint 2 scope so the team can complete and verify core Sprint 2 workflows (`F-09`, `F-10`, `F-11`), Sprint 3 progress (`F-12`), and Lab 6 UAT defect resolution before the 29 November checkpoint.

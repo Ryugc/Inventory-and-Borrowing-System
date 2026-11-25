@@ -61,6 +61,7 @@ async function loadCatalog() {
     const assets = await api("/assets");
     $("#catalogGrid").innerHTML = assets.map((asset) => {
       const available = asset.status === "AVAILABLE";
+      const nextStatus = available ? "MAINTENANCE" : "AVAILABLE";
       return `
         <article class="asset-card">
           <span class="status ${available ? "status-available" : "status-other"}">${escapeHtml(asset.status)}</span>
@@ -68,6 +69,9 @@ async function loadCatalog() {
           <p>${escapeHtml(asset.assetTag)} · ${escapeHtml(asset.category)}</p>
           ${state.role === "BORROWER"
             ? `<button class="button request-button" type="button" data-id="${escapeHtml(asset.id)}" ${available ? "" : "disabled"}>Request</button>`
+            : ""}
+          ${state.role === "CUSTODIAN" && asset.status !== "CHECKED_OUT"
+            ? `<button class="button button-secondary asset-status-button" type="button" data-id="${escapeHtml(asset.id)}" data-status="${nextStatus}">Set ${nextStatus === "MAINTENANCE" ? "Maintenance" : "Available"}</button>`
             : ""}
         </article>`;
     }).join("");
@@ -79,14 +83,18 @@ async function loadCatalog() {
 async function loadRequests() {
   try {
     const requests = await api("/borrow-requests/my");
-    $("#requestList").innerHTML = requests.length ? requests.map((request) => `
-      <article class="list-item">
-        <div>
-          <strong>${escapeHtml(request.asset ? request.asset.name + " (" + request.asset.assetTag + ")" : request.assetId)}</strong>
-          <p>Requested ${formatDate(request.requestDate)}</p>
-        </div>
-        <span class="status status-other">${escapeHtml(request.status)}</span>
-      </article>`).join("") : `<p class="muted">No borrow requests yet.</p>`;
+    $("#requestList").innerHTML = requests.length ? requests.map((request) => {
+      const overdue = request.status === "OVERDUE" || request.isOverdue === true;
+      return `
+        <article class="list-item">
+          <div>
+            <strong>${escapeHtml(request.asset ? request.asset.name + " (" + request.asset.assetTag + ")" : request.assetId)}</strong>
+            <p>Requested ${formatDate(request.requestDate)}</p>
+            ${request.dueDate ? `<p>Due ${formatDate(request.dueDate)}</p>` : ""}
+          </div>
+          <span class="status ${overdue ? "status-overdue" : "status-other"}">${escapeHtml(overdue ? "OVERDUE" : request.status)}</span>
+        </article>`;
+    }).join("") : `<p class="muted">No borrow requests yet.</p>`;
   } catch (error) {
     handleApiError(error);
   }
@@ -95,14 +103,18 @@ async function loadRequests() {
 async function loadLoans() {
   try {
     const loans = await api("/loans/active");
-    $("#loanList").innerHTML = loans.length ? loans.map((loan) => `
-      <article class="list-item">
-        <div>
-          <strong>${escapeHtml(loan.asset ? loan.asset.name + " (" + loan.asset.assetTag + ")" : loan.assetId)}</strong>
-          <p>Loan ${escapeHtml(loan.id)} · Due ${formatDate(loan.dueDate)}</p>
-        </div>
-        <button class="button button-secondary return-button" type="button" data-id="${escapeHtml(loan.id)}">Return</button>
-      </article>`).join("") : `<p class="muted">No active loans.</p>`;
+    $("#loanList").innerHTML = loans.length ? loans.map((loan) => {
+      const overdue = loan.status === "OVERDUE" || loan.isOverdue === true;
+      return `
+        <article class="list-item">
+          <div>
+            <strong>${escapeHtml(loan.asset ? loan.asset.name + " (" + loan.asset.assetTag + ")" : loan.assetId)}</strong>
+            <p>Loan ${escapeHtml(loan.id)} · Due ${formatDate(loan.dueDate)}</p>
+            ${overdue ? `<span class="status status-overdue">OVERDUE</span>` : ""}
+          </div>
+          <button class="button button-secondary return-button" type="button" data-id="${escapeHtml(loan.id)}">Return</button>
+        </article>`;
+    }).join("") : `<p class="muted">No active loans.</p>`;
   } catch (error) {
     handleApiError(error);
   }
@@ -138,6 +150,7 @@ function enterApp(session) {
   $("#roleBadge").textContent = session.role;
   $("#borrowerTab").classList.toggle("hidden", session.role !== "BORROWER");
   $("#custodianTab").classList.toggle("hidden", session.role !== "CUSTODIAN");
+  $("#assetForm").classList.toggle("hidden", session.role !== "CUSTODIAN");
   switchView("catalog");
   loadCatalog();
   if (session.role === "CUSTODIAN") {
@@ -182,13 +195,49 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 
 $("#catalogGrid").addEventListener("click", async (event) => {
-  const button = event.target.closest(".request-button");
-  if (!button) return;
+  const requestButton = event.target.closest(".request-button");
+  if (requestButton) {
+    try {
+      const request = await api("/borrow-requests", { method: "POST", body: JSON.stringify({ assetId: requestButton.dataset.id }) });
+      showNotice(`Request created: ${request.id}`);
+      await loadCatalog();
+      await loadRequests();
+    } catch (error) {
+      handleApiError(error);
+    }
+    return;
+  }
+
+  const statusButton = event.target.closest(".asset-status-button");
+  if (statusButton) {
+    try {
+      await api(`/api/assets/${encodeURIComponent(statusButton.dataset.id)}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: statusButton.dataset.status })
+      });
+      showNotice(`Asset status updated to ${statusButton.dataset.status}.`);
+      await loadCatalog();
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+});
+
+$("#assetForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
   try {
-    const request = await api("/borrow-requests", { method: "POST", body: JSON.stringify({ assetId: button.dataset.id }) });
-    showNotice(`Request created: ${request.id}`);
+    await api("/api/assets", {
+      method: "POST",
+      body: JSON.stringify({
+        assetTag: form.get("assetTag"),
+        name: form.get("name"),
+        category: form.get("category")
+      })
+    });
+    event.currentTarget.reset();
+    showNotice("Equipment added.");
     await loadCatalog();
-    await loadRequests();
   } catch (error) {
     handleApiError(error);
   }
@@ -225,10 +274,12 @@ $("#pendingRequestList").addEventListener("click", (event) => {
 $("#loanList").addEventListener("click", async (event) => {
   const button = event.target.closest(".return-button");
   if (!button) return;
+  const returnCondition = window.prompt("Enter return condition (optional):", "Good");
+  if (returnCondition === null) return;
   try {
     await api(`/loans/${encodeURIComponent(button.dataset.id)}/return`, {
       method: "POST",
-      body: JSON.stringify({ returnCondition: "Good" })
+      body: JSON.stringify({ returnCondition })
     });
     showNotice("Loan returned successfully.");
     await loadCatalog();

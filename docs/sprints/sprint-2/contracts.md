@@ -35,11 +35,11 @@ Sources: `docs/srs.md`, `docs/features.md`, `docs/traceability.md`, `docs/system
 ## C-07 Due Date and Overdue Detection (`F-10`)
 - **Requirements:** `FR-09`, `FR-10`, `BR-06`, `NFR-03`
 - **Workflow:**
-  1. At checkout (`POST /api/loans/checkout`), if `dueDate`/`dueAt` is omitted, server calculates `dueDate = checkoutDate + 14 days`; if provided, server validates ISO date is valid and strictly after `checkoutDate`.
+  1. At checkout (`POST /api/borrow-requests/:id/checkout`), if `dueDate`/`dueAt` is omitted, server calculates `dueDate = checkoutDate + 14 days`; if provided, server validates ISO date is valid and strictly after `checkoutDate`.
   2. When retrieving active loans (`GET /api/loans/active`) or borrower records (`GET /api/borrow-requests/my`), any unreturned loan (`returnDate == null`) where `now() > dueDate` is evaluated and flagged as `OVERDUE` (`BR-06`).
 - **Data Layer:** Uses existing `LoanRecord.dueDate` and `LoanStatus.OVERDUE` enum in `prisma/schema.prisma` (no schema migration required).
 - **API Definition:**
-  - `POST /api/loans/checkout` (`CUSTODIAN`): accepts optional `dueDate` / `dueAt`; returns `400 Bad Request` if unparseable or `<= checkoutDate`.
+  - `POST /api/borrow-requests/:id/checkout` (`CUSTODIAN`): accepts optional `dueDate` / `dueAt`; returns `400 Bad Request` if unparseable or `<= checkoutDate`.
   - `GET /api/loans/active` (`CUSTODIAN`) & `GET /api/borrow-requests/my` (`BORROWER`): returns computed/persisted `status: "OVERDUE"` and boolean `isOverdue: true` when `now() > dueDate && returnDate == null`.
 - **UI Definition:** Checkout form defaults due date to `+14 days`; Custodian Active Loans and Borrower My Requests views render a red **`OVERDUE`** badge when `status === "OVERDUE"`.
 - **Permissions:** Checkout and all-loans oversight restricted to `CUSTODIAN`; borrower sees only own loans (`BR-04`).
@@ -78,3 +78,4 @@ Sources: `docs/srs.md`, `docs/features.md`, `docs/traceability.md`, `docs/system
 | Version | Date | Change | Commit |
 | :--- | :--- | :--- | :--- |
 | `v2.0-draft` | 2026-11-25 | Pre-implementation Sprint 2 contracts (`C-06` to `C-08`) and STS specifications added; `F-15` deferred per `CHG-01` | *fill after commit* |
+| `v2.0` | 2026-11-25 | C-07 checkout URL aligned to the existing Sprint 1 `POST /api/borrow-requests/:id/checkout` route | pending |
