@@ -1,8 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import { inventoryService } from "../services/inventoryService.js";
 
-export async function listAssets(_req: Request, res: Response, next: NextFunction): Promise<void> {
-  try { res.status(200).json(await inventoryService.listAssets()); } catch (error) { next(error); }
+export async function listAssets(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await inventoryService.listAssets({
+      q: req.query.q,
+      category: req.query.category,
+      status: req.query.status
+    }));
+  } catch (error) { next(error); }
 }
 
 export async function createAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
