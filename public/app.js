@@ -58,7 +58,15 @@ function switchView(viewName) {
 
 async function loadCatalog() {
   try {
-    const assets = await api("/assets");
+    const params = new URLSearchParams();
+    const query = $("#assetSearchInput").value.trim();
+    const category = $("#assetCategoryFilter").value.trim();
+    const status = $("#assetStatusFilter").value;
+    if (query) params.set("q", query);
+    if (category) params.set("category", category);
+    if (status) params.set("status", status);
+    const search = params.toString();
+    const assets = await api(`/api/assets${search ? `?${search}` : ""}`);
     $("#catalogGrid").innerHTML = assets.map((asset) => {
       const available = asset.status === "AVAILABLE";
       const nextStatus = available ? "MAINTENANCE" : "AVAILABLE";
@@ -222,6 +230,18 @@ $("#catalogGrid").addEventListener("click", async (event) => {
       handleApiError(error);
     }
   }
+});
+
+$("#catalogFilters").addEventListener("submit", (event) => {
+  event.preventDefault();
+  loadCatalog();
+});
+$("#assetSearchInput").addEventListener("input", loadCatalog);
+$("#assetCategoryFilter").addEventListener("input", loadCatalog);
+$("#assetStatusFilter").addEventListener("change", loadCatalog);
+$("#clearAssetFiltersButton").addEventListener("click", () => {
+  $("#catalogFilters").reset();
+  loadCatalog();
 });
 
 $("#assetForm").addEventListener("submit", async (event) => {

@@ -73,6 +73,26 @@
             </div>
             <button class="button" type="submit">Add Equipment</button>
           </form>
+          <form id="catalogFilters" class="catalog-filters" role="search">
+            <div class="field">
+              <label for="assetSearchInput">Search assets</label>
+              <input id="assetSearchInput" name="q" type="search" placeholder="Name or asset tag" />
+            </div>
+            <div class="field">
+              <label for="assetCategoryFilter">Category</label>
+              <input id="assetCategoryFilter" name="category" type="text" placeholder="Any category" />
+            </div>
+            <div class="field">
+              <label for="assetStatusFilter">Status</label>
+              <select id="assetStatusFilter" name="status">
+                <option value="">All statuses</option>
+                <option value="AVAILABLE">Available</option>
+                <option value="CHECKED_OUT">Checked out</option>
+                <option value="MAINTENANCE">Maintenance</option>
+              </select>
+            </div>
+            <button id="clearAssetFiltersButton" class="button button-secondary" type="button">Clear</button>
+          </form>
           <div id="catalogGrid" class="asset-grid"></div>
         </section>
 

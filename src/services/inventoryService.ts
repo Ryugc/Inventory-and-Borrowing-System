@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 import { HttpError } from "../middleware/error.js";
-import { Role } from "../types/index.js";
+import { AssetStatus, Role } from "../types/index.js";
 import type { AuthPrincipal } from "../types/index.js";
 
 async function lockAsset(tx: Prisma.TransactionClient, assetId: string): Promise<void> {
@@ -14,6 +14,12 @@ type LoanStatusRecord = {
   returnDate: Date | null;
   status: string;
 };
+
+function isAssetStatus(value: unknown): value is AssetStatus {
+  return value === AssetStatus.AVAILABLE ||
+    value === AssetStatus.CHECKED_OUT ||
+    value === AssetStatus.MAINTENANCE;
+}
 
 async function addOverdueStatus<T extends LoanStatusRecord>(loans: T[]) {
   const now = new Date();
@@ -35,8 +41,24 @@ async function addOverdueStatus<T extends LoanStatusRecord>(loans: T[]) {
 }
 
 export const inventoryService = {
-  async listAssets() {
-    return prisma.asset.findMany({ orderBy: { assetTag: "asc" } });
+  async listAssets(filters: { q?: unknown; category?: unknown; status?: unknown } = {}) {
+    const where: Prisma.AssetWhereInput = {};
+    const query = typeof filters.q === "string" ? filters.q.trim() : "";
+    const category = typeof filters.category === "string" ? filters.category.trim() : "";
+
+    if (query) {
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+        { assetTag: { contains: query, mode: "insensitive" } }
+      ];
+    }
+    if (category) where.category = { equals: category, mode: "insensitive" };
+    if (filters.status !== undefined) {
+      if (!isAssetStatus(filters.status)) throw new HttpError(400, "Invalid asset status filter");
+      where.status = filters.status;
+    }
+
+    return prisma.asset.findMany({ where, orderBy: { assetTag: "asc" } });
   },
 
   async createAsset(input: { assetTag: unknown; name: unknown; category: unknown }) {
