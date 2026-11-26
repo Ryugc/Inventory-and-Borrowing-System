@@ -1,39 +1,38 @@
 # Requirements-to-Features Traceability Matrix
-**Version:** v0.1 (draft) | Verification columns (AC / test / result) are filled in per feature contract.
+**Version:** v3.0
 
-## 1. Baseline requirements (in srs.md)
+The matrix records the requirements, feature responsibility, sprint, verification basis, planned tests, current evidence, and result. Test identifiers below are existing identifiers; no new requirement, feature, contract, or test identifiers are introduced.
 
-| Req | Summary | Feature(s) | Sprint |
-|-----|---------|-----------|--------|
-| FR-01 | Email/password auth, role in session | F-01 | 1 |
-| FR-02 | View catalog | F-03 | 1 |
-| FR-03 | Submit borrow request for `AVAILABLE` asset | F-04 | 1 |
-| FR-04 | Custodian checkout, creates loan | F-05 | 1 |
-| FR-05 | Borrower views own requests/loans | F-06 | 1 |
-| FR-06 | Custodian views all loans/requests | F-07 | 1 |
-| BR-01 | Asset exclusivity (one active loan/request) | F-04, F-05 | 1 |
-| BR-02 | Unavailable asset rejected, 409 | F-04, F-05 | 1 |
-| BR-03 | Custodian-only operations, else 403 | F-02, F-05, F-07 | 1 |
-| BR-04 | Borrower sees only own records, else 403 | F-02, F-06 | 1 |
-| NFR-01 | Password hashing | F-01 | 1 |
-| NFR-02 | 401/403 enforced on backend | F-02 | 1 |
-| NFR-03 | Persistence across restart | F-08 | 1 |
+| Requirement | Feature / Responsibility | Sprint | AC or NFR Verification | Planned Test | Actual File / Test or Measurement | Result and Version |
+|---|---|---:|---|---|---|---|
+| FR-01 | F-01 — Authenticate Borrower and Custodian; establish role-bearing session | 1 | Valid credentials establish a session; invalid/forged credentials are rejected | STS-AUTH-001–004, STS-AUTH-008 | [tests/api/auth.test.ts](../tests/api/auth.test.ts): STS-AUTH-001–004, STS-AUTH-008 | Implemented and covered; v3.0 |
+| FR-02 | F-03 — Retrieve the asset catalog for authenticated users | 1 | Catalog exposes asset tag, name, category, and status | STS-CATALOG-001, STS-CATALOG-003 | [tests/api/catalog.test.ts](../tests/api/catalog.test.ts): STS-CATALOG-001, STS-CATALOG-003 | Implemented and covered; v3.0 |
+| FR-03 | F-04 — Submit a request for an available asset | 1 | Available asset request succeeds; unavailable and duplicate requests are rejected | STS-REQUEST-001–003 | [tests/api/borrow-request.test.ts](../tests/api/borrow-request.test.ts): STS-REQUEST-001–003 | Implemented and covered; v3.0 |
+| FR-04 | F-05 — Custodian checkout creates a loan and checks out the asset | 1 | Pending request can be checked out; unavailable assets are rejected | STS-CHECKOUT-001–003 | [tests/api/checkout.test.ts](../tests/api/checkout.test.ts): STS-CHECKOUT-001–003 | Implemented and covered; v3.0 |
+| FR-05 | F-06 — Borrower inspects personal requests and loans | 1 | Borrower views only personal borrowing information | STS-OVERDUE-003 | [tests/api/overdue.test.ts](../tests/api/overdue.test.ts): STS-OVERDUE-003 exercises the Borrower loan query | Implemented; request/ownership-specific coverage is not separately identified in the current test files; v3.0 |
+| FR-06 | F-07 — Custodian views pending requests and active loans | 1 | Custodian can view department requests/loans; Borrower cannot access Custodian-only views | STS-CUSTODIAN-001–003, STS-OVERDUE-003 | [tests/api/custodian.test.ts](../tests/api/custodian.test.ts): STS-CUSTODIAN-001–003; [tests/api/overdue.test.ts](../tests/api/overdue.test.ts): STS-OVERDUE-003 | Implemented and covered; v3.0 |
+| FR-07 | F-11 — Custodian creates assets and updates eligible statuses | 2 | Creation, validation, status transitions, and role restrictions | STS-ASSET-001–004 | [tests/api/assets-admin.test.ts](../tests/api/assets-admin.test.ts): STS-ASSET-001–004 | Implemented and covered; v3.0 |
+| FR-08 | F-09 — Custodian records return date/condition and restores availability | 2 | Valid return succeeds; invalid state and Borrower return are rejected | STS-RETURN-001–004 | [tests/api/return.test.ts](../tests/api/return.test.ts): STS-RETURN-001–004 | Implemented and covered; v3.0 |
+| FR-09 | F-10 — Assign and persist a due date at checkout | 2 | Default due date is assigned; malformed/past dates are rejected | STS-OVERDUE-001–002 | [tests/api/overdue.test.ts](../tests/api/overdue.test.ts): STS-OVERDUE-001–002 | Implemented and covered; v3.0 |
+| FR-10 | F-10 — Identify and display unreturned overdue loans | 2 | Past-due loans are overdue; returned loans remain returned | STS-OVERDUE-003–004 | [tests/api/overdue.test.ts](../tests/api/overdue.test.ts): STS-OVERDUE-003–004 | Implemented and covered; v3.0 |
+| FR-11 | F-12 / C-09 — Search and filter the catalog | 3 | AC-SRCH-01–04 | STS-SEARCH-001–004 | 49/49 Vitest suite passed as reported; search-specific test source is not present in the current branch's `tests/` tree | Implemented and Passed; v3.0 |
+| FR-12 | F-13 / C-10 — Custodian utilization report | 3 | AC-UTIL-01–03 | STS-UTIL-001–003 | Planned; no report test or implementation file is present in the current branch's `tests/` tree | Planned — Not Yet Executed; target 2026-11-29 |
+| FR-13 | F-15 / C-12 — Custodian rejects a pending request (`CHG-01`) | 2, deferred to 3 | AC-REQ-01, AC-REQ-03–04 | STS-REQ-001, STS-REQ-003–004 | Planned; no rejection test is present in the current branch's `tests/` tree | Planned — Not Yet Executed; target 2026-12-03 |
+| FR-14 | F-15 / C-12 — Owner Borrower cancels a pending request (`CHG-01`) | 2, deferred to 3 | AC-REQ-02–04 | STS-REQ-002–004 | Planned; no cancellation test is present in the current branch's `tests/` tree | Planned — Not Yet Executed; target 2026-12-03 |
+| BR-01 | F-04, F-05 — Preserve exclusive asset/request/loan transitions | 1 | Concurrent duplicate requests do not create overlapping requests | STS-REQUEST-003, STS-CHECKOUT-003 | [tests/api/borrow-request.test.ts](../tests/api/borrow-request.test.ts): STS-REQUEST-003; [tests/api/checkout.test.ts](../tests/api/checkout.test.ts): STS-CHECKOUT-003 | Implemented and covered; v3.0 |
+| BR-02 | F-04, F-05 — Reject operations on unavailable assets | 1 | Borrow request and checkout conflicts return HTTP 409 | STS-REQUEST-002, STS-CHECKOUT-003 | [tests/api/borrow-request.test.ts](../tests/api/borrow-request.test.ts): STS-REQUEST-002; [tests/api/checkout.test.ts](../tests/api/checkout.test.ts): STS-CHECKOUT-003 | Implemented and covered; v3.0 |
+| BR-03 | F-02, F-05, F-07, F-09, F-11, F-13, F-15 — Enforce Custodian-only operations | 1–3 | Backend role guards return 403 for wrong-role actions | STS-AUTH-005–006, STS-ASSET-004, STS-RETURN-004 | [tests/api/auth.test.ts](../tests/api/auth.test.ts): STS-AUTH-005–006; [tests/api/assets-admin.test.ts](../tests/api/assets-admin.test.ts): STS-ASSET-004; [tests/api/return.test.ts](../tests/api/return.test.ts): STS-RETURN-004 | Existing operations covered; C-10 and C-12 authorization checks Planned — Not Yet Executed; v3.0 |
+| BR-04 | F-02, F-06, F-15 — Restrict Borrower records to their owner | 1, deferred F-15 work in 3 | Borrower access is limited to personal records; non-owner cancellation is forbidden | STS-AUTH-006, STS-REQ-003 | [tests/api/auth.test.ts](../tests/api/auth.test.ts): STS-AUTH-006 covers role denial; STS-REQ-003 is planned for non-owner cancellation | Ownership-specific test evidence is incomplete; C-12 check Planned — Not Yet Executed; v3.0 |
+| BR-05 | F-09 — Restrict returns to Custodian and checked-out loan state | 2 | Invalid/already-returned state and wrong role are rejected | STS-RETURN-003–004 | [tests/api/return.test.ts](../tests/api/return.test.ts): STS-RETURN-003–004 | Implemented and covered; v3.0 |
+| BR-06 | F-10 — Classify overdue loans; CHG-02 proposes configurable maximum duration | 2; CHG-02 planned | Unreturned loans past due are overdue; returned loans are not overdue | STS-OVERDUE-003–004 | [tests/api/overdue.test.ts](../tests/api/overdue.test.ts): STS-OVERDUE-003–004 | Overdue classification implemented and covered; CHG-02 Planned — Not Yet Executed; target 2026-12-06 |
+| NFR-01 | F-01 — Store password hashes, not plaintext passwords | 1 | bcrypt hash is persisted; plaintext is not persisted | STS-AUTH-007 | [tests/api/auth.test.ts](../tests/api/auth.test.ts): STS-AUTH-007 | Implemented and covered; v3.0 |
+| NFR-02 | F-02 — Enforce authentication and authorization on the backend | 1 | Protected routes reject unauthenticated/wrong-role requests | STS-AUTH-004–006, STS-ASSET-004, STS-RETURN-004 | [tests/api/auth.test.ts](../tests/api/auth.test.ts): STS-AUTH-004–006; [tests/api/assets-admin.test.ts](../tests/api/assets-admin.test.ts): STS-ASSET-004; [tests/api/return.test.ts](../tests/api/return.test.ts): STS-RETURN-004 | Implemented and covered; v3.0 |
+| NFR-03 | F-08 — Persist domain data in PostgreSQL across restarts | 1 | PostgreSQL schema/persistence configuration; restart survival measurement | No dedicated test identifier is defined in the current `tests/` tree | [tests/dockerization.test.ts](../tests/dockerization.test.ts) checks container configuration; it does not measure data survival across restart | PostgreSQL persistence configured; restart-survival measurement not identified; v3.0 |
+| NFR-04 | F-14 / C-11 — Containerization, CI/CD, startup validation, standardized errors | 3 | AC-HARD-01–03; Docker/CI baseline and error/startup checks | STS-HARD-001–003 | [tests/dockerization.test.ts](../tests/dockerization.test.ts) verifies Docker configuration; Lab 5 CI/CD passed as reported | Lab 5 CI/CD passed; C-11 JSON envelope and startup checks Planned — Not Yet Executed; target 2026-11-29 |
 
-## 2. Gaps: Sprint 2–3 scope has no requirements yet
-srs.md §3 promises these, but no FR/BR/NFR covers them. **Proposed IDs to add to srs.md:**
+## Uncovered and Planned Sprint 3 Checks
 
-| Proposed | Summary | Feature(s) | Sprint |
-|----------|---------|-----------|--------|
-| FR-07 | Custodian creates assets and updates availability status | F-11 | 2 |
-| FR-08 | Custodian records return with condition notes | F-09 | 2 |
-| FR-09 | System calculates due date at checkout | F-10 | 2 |
-| FR-10 | System detects and displays overdue loans | F-10 | 2 |
-| FR-11 | Search and filter catalog by name, tag, category, status | F-12 | 3 |
-| FR-12 | Custodian views inventory utilization report | F-13 | 3 |
-| BR-05 | Only a custodian can process a return; only `CHECKED_OUT` assets can be returned | F-09 | 2 |
-| BR-06 | Loan is overdue when current date > due date and not returned | F-10 | 2 |
-| NFR-04 | App is containerized, configured by env vars, deployable via CI/CD | F-14 | 3 |
-
-## 3. Coverage check
-- Every baseline FR/BR/NFR maps to at least one feature.
-- Every feature F-01 to F-14 has at least one requirement (after the proposed additions).
+- **C-10 (F-13 / FR-12):** AC-UTIL-01–03; STS-UTIL-001–003 — Planned — Not Yet Executed; target 2026-11-29.
+- **C-11 (F-14 / NFR-04):** AC-HARD-01–03; STS-HARD-001–003 — Lab 5 CI/CD passed. C-11 JSON error envelope and startup validation checks are Planned — Not Yet Executed; target 2026-11-29.
+- **C-12 (F-15 / FR-13, FR-14; CHG-01):** AC-REQ-01–04; STS-REQ-001–004 — Planned — Not Yet Executed; target 2026-12-03.
+- **CHG-02 (BR-06):** Configurable maximum loan duration — Planned — Not Yet Executed pending Lab 7 approval; target 2026-12-06.
