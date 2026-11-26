@@ -58,6 +58,9 @@ input {
 .asset-admin-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 0 0 18px; }
 .asset-admin-form .field { display: flex; flex: 1 1 180px; flex-direction: column; gap: 4px; }
 .asset-admin-form .button { flex: 0 0 auto; margin: 0; }
+.catalog-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 0 0 18px; }
+.catalog-filters .field { display: flex; flex: 1 1 180px; flex-direction: column; gap: 4px; }
+.catalog-filters .button { flex: 0 0 auto; margin: 0; }
 .inline-form .button { height: 42px; margin: 0; }
 .active-loans-heading { margin-top: 24px; }
 .notice { position: fixed; right: 20px; bottom: 20px; max-width: 420px; padding: 14px 16px; border-radius: 9px; color: white; background: #193c6d; box-shadow: 0 8px 24px rgba(30,56,92,.2); }
