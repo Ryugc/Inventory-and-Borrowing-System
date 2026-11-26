@@ -118,6 +118,23 @@ export const inventoryService = {
   },
 
   async checkout(requestId: string, dueAt: string | undefined, principal: AuthPrincipal) {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const MIN_LOAN_MS = 1 * DAY_MS;
+    const MAX_LOAN_MS = 14 * DAY_MS;
+    const checkoutDate = new Date();
+    const dueDate = dueAt === undefined
+      ? new Date(checkoutDate.getTime() + MAX_LOAN_MS)
+      : new Date(dueAt);
+
+    if (Number.isNaN(dueDate.getTime())) {
+      throw new HttpError(400, "Invalid dueAt date");
+    }
+
+    const durationMs = dueDate.getTime() - checkoutDate.getTime();
+    if (durationMs < MIN_LOAN_MS || durationMs > MAX_LOAN_MS) {
+      throw new HttpError(400, "Due date must be between 1 and 14 days after checkout");
+    }
+
     return prisma.$transaction(async (tx) => {
       const found = await tx.borrowRequest.findUnique({ where: { id: requestId } });
       if (!found) throw new HttpError(404, "Borrow request not found");
@@ -125,13 +142,6 @@ export const inventoryService = {
       const request = await tx.borrowRequest.findUniqueOrThrow({ where: { id: requestId } });
       const asset = await tx.asset.findUniqueOrThrow({ where: { id: request.assetId } });
       if (request.status !== "PENDING" || asset.status !== "AVAILABLE") throw new HttpError(409, "Asset is unavailable");
-      const checkoutDate = new Date();
-      const dueDate = dueAt === undefined
-        ? new Date(checkoutDate.getTime() + 14 * 24 * 60 * 60 * 1000)
-        : new Date(dueAt);
-      if (Number.isNaN(dueDate.getTime()) || dueDate <= checkoutDate) {
-        throw new HttpError(400, "Due date must be a valid date after checkout");
-      }
       await tx.asset.update({ where: { id: asset.id }, data: { status: "CHECKED_OUT" } });
       await tx.borrowRequest.update({ where: { id: request.id }, data: { status: "APPROVED", resolvedDate: new Date() } });
       const loan = await tx.loanRecord.create({
