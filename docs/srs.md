@@ -82,3 +82,6 @@ The Inventory and Borrowing System is a centralized web platform that gives borr
 1. **Granularity Model:** Individual asset-tag tracking rather than bulk inventory quantities to enforce strict race-condition handling and exclusive checkout.
 2. **Session Security:** Token-based session authentication with role validation middleware executed on every protected route.
 3. **Deterministic Seeding:** Predefined test credentials (`borrower@ku.ac.th`, `custodian@ku.ac.th`) and equipment records generated via Prisma seed scripts against PostgreSQL 16.
+
+## Lab 7 Specification Revision (3.1-lab7 — CHG-03, Issue #49)
+- **BR-07 (Borrower Concurrent Borrowing Quota — CHG-03):** Extending FR-03 and BR-01 (F-04), an authenticated BORROWER may hold at most **2 concurrent active obligations**, calculated as count(BorrowRequest where status = PENDING) + count(LoanRecord where returnDate = null). Any POST /api/borrow-requests submitted when the caller already holds >= 2 active obligations shall be rejected atomically with HTTP 409 Conflict ("Maximum concurrent borrowing limit (2 active/pending items) reached").

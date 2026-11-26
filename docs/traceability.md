@@ -36,3 +36,8 @@ The matrix records the requirements, feature responsibility, sprint, verificatio
 - **C-11 (F-14 / NFR-04):** AC-HARD-01–03; STS-HARD-001–003 — Lab 5 CI/CD passed. C-11 JSON error envelope and startup validation checks are Planned — Not Yet Executed; target 2026-11-29.
 - **C-12 (F-15 / FR-13, FR-14; CHG-01):** AC-REQ-01–04; STS-REQ-001–004 — Planned — Not Yet Executed; target 2026-12-03.
 - **CHG-02 (BR-06):** Configurable maximum loan duration — Planned — Not Yet Executed pending Lab 7 approval; target 2026-12-06.
+
+## Lab 7 Change Traceability (3.1-lab7 � CHG-03, Issue #49)
+| Requirement / Rule | Feature | Baseline | AC | STS Test IDs | Target Module & Test File | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| FR-03, BR-07 (CHG-03) | F-04 Borrow Request Submission | 0.1.0 (c03ff3a) -> 0.3.0-rc1 (72fb413) | AC-QUOTA-01 to AC-QUOTA-03 | STS-QUOTA-001 to STS-QUOTA-003 | src/services/inventoryService.ts, 	ests/api/borrow-quota.test.ts | Contract Revised & Reviewed (Pre-Implementation) |
