@@ -1,8 +1,8 @@
-```markdown
 # System-Level Software Design Specification (System SDS)
 ## Theme 2: Inventory and Borrowing System
 **Course:** CPE 334 Software Engineering in the Age of AI Agents  
 **Semester:** 1/2026  
+**Version:** v3.0
 **Repository:** https://github.com/Ryugc/Inventory-and-Borrowing-System  
 
 ---
@@ -27,7 +27,7 @@ graph TD
     end
 
     subgraph Data_Tier [Persistence Tier]
-        DB[(Relational DB: SQLite / PostgreSQL)]
+        DB[(PostgreSQL 16)]
     end
 
     UI1 -->|HTTPS / JSON| Router
@@ -157,6 +157,22 @@ erDiagram
 * `404 Not Found`: Target resource identifier does not exist.
 * `409 Conflict`: Business rule violation (e.g., asset already checked out).
 
+#### C-11 JSON Error Envelope
+
+Malformed JSON and validation failures return `400`, unmatched routes return `404`, and unexpected server errors return `500`. These errors use the same JSON envelope and do not expose stack traces, SQL, credentials, or environment values:
+
+```json
+{
+  "error": {
+    "status": 400,
+    "code": "<stable code>",
+    "message": "<safe message>"
+  }
+}
+```
+
+Required environment configuration is validated at startup. C-11 envelope and startup-validation checks remain Planned — Not Yet Executed.
+
 
 
 ### 3.2 Endpoint Routing Matrix
@@ -164,12 +180,18 @@ erDiagram
 | HTTP Method | Route | Authorization | Expected Status | Description |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/auth/login` | Public | `200` / `401` | Authenticates credentials; returns token and user role |
-| `GET` | `/api/assets` | Authenticated | `200` | Lists all tracked inventory items with availability |
-| `POST` | `/api/borrow-requests` | `BORROWER` | `201` / `409` | Submits a borrow request for an available asset |
-| `GET` | `/api/borrow-requests/my` | `BORROWER` | `200` | Returns all pending and past requests for current user |
-| `POST` | `/api/loans/checkout` | `CUSTODIAN` | `201` / `403` / `409` | Authorizes pending request into an active loan |
-| `GET` | `/api/loans/active` | `CUSTODIAN` | `200` / `403` | Lists all active loans across all borrowers |
-| `POST` | `/api/loans/:id/return` | `CUSTODIAN` | `200` / `403` / `404` | Logs return condition and returns asset to `AVAILABLE` |
+| `GET` | `/api/assets?q=&category=&status=` | Authenticated Borrower or Custodian | `200` / `400` / `401` | Lists assets; optional case-insensitive name/tag substring, category, and status filters (C-09) |
+| `POST` | `/api/assets` | `CUSTODIAN` | `201` / `400` / `403` / `409` | Creates an asset (C-08) |
+| `PATCH` | `/api/assets/:id/status` | `CUSTODIAN` | `200` / `400` / `403` / `404` / `409` | Changes an eligible asset status (C-08) |
+| `POST` | `/api/borrow-requests` | `BORROWER` | `201` / `401` / `409` | Submits a request for an available asset |
+| `GET` | `/api/borrow-requests/my` | `BORROWER` | `200` / `401` | Returns the current Borrower's requests |
+| `GET` | `/api/borrow-requests/pending` | `CUSTODIAN` | `200` / `403` | Lists pending requests for Custodian review |
+| `POST` | `/api/borrow-requests/:id/checkout` | `CUSTODIAN` | `201` / `400` / `403` / `404` / `409` | Checks out a pending request and creates a loan |
+| `POST` | `/api/borrow-requests/:id/reject` | `CUSTODIAN` | `200` / `403` / `404` / `409` | Rejects a pending request (C-12; `CHG-01`) |
+| `POST` | `/api/borrow-requests/:id/cancel` | Owner `BORROWER` | `200` / `403` / `404` / `409` | Cancels the owner's pending request (C-12; `CHG-01`) |
+| `GET` | `/api/loans/active` | `CUSTODIAN` | `200` / `403` | Lists active loans across borrowers |
+| `POST` | `/api/loans/:id/return` | `CUSTODIAN` | `200` / `403` / `404` / `409` | Logs return condition and returns asset to `AVAILABLE` (C-06) |
+| `GET` | `/api/reports/utilization` | `CUSTODIAN` | `200` / `403` | Returns asset and loan utilization counts (C-10) |
 
 ### 3.3 UI Navigation Breakdown
 
@@ -187,12 +209,16 @@ erDiagram
 | Operation | Public | Borrower | Custodian | Enforcement Mechanism |
 | --- | --- | --- | --- | --- |
 | Login / Session Creation | Yes | Yes | Yes | Unprotected public route |
-| Browse Asset Catalog | No | Yes | Yes | Bearer Token Validation Middleware |
+| Browse and Filter Asset Catalog | No | Yes | Yes | Authentication middleware; C-09 query validation |
+| Create / Update Asset | No | No | Yes | Custodian role middleware (C-08) |
 | Submit Borrow Request | No | Yes | No | Role check (`req.user.role === 'BORROWER'`) |
 | View Personal Loans | No | Yes | No | Ownership filter (`borrowerId === req.user.id`) |
 | Execute Physical Checkout | No | No | Yes | Role check (`req.user.role === 'CUSTODIAN'`) |
+| Reject Pending Request | No | No | Yes | Custodian role middleware (C-12) |
+| Cancel Own Pending Request | No | Yes (owner only) | No | Borrower role and ownership check (C-12) |
 | View All Department Loans | No | No | Yes | Role check (`req.user.role === 'CUSTODIAN'`) |
 | Process Equipment Return | No | No | Yes | Role check (`req.user.role === 'CUSTODIAN'`) |
+| View Utilization Report | No | No | Yes | Custodian role middleware (C-10) |
 
 ### 4.2 Security Boundaries & Data Isolation
 
@@ -209,7 +235,7 @@ erDiagram
 | Configuration Parameter | Local Development | Continuous Integration (CI) | Production / Staging |
 | --- | --- | --- | --- |
 | **Runtime Environment** | Node.js v20+ / Windows / macOS | GitHub Actions (Ubuntu Runner) | Alpine Linux Docker Container |
-| **Database Engine** | SQLite (`prisma/dev.db`) | In-Memory / Ephemeral SQLite | PostgreSQL or SQLite persistent volume |
+| **Database Engine** | PostgreSQL 16 | PostgreSQL 16 test database | PostgreSQL 16 persistent volume |
 | **Process Manager** | `tsx watch` | Vitest Test Suite | Docker Engine (`node dist/server.js`) |
 | **Seed Strategy** | `npx prisma db seed` | Synthetic automated test fixtures | Automated migration entrypoint |
 
@@ -221,7 +247,7 @@ GitHub Actions automatically runs on every push and pull request targeting `spri
 2. **Environment Setup:** Installs Node.js LTS v20.x with caching enabled for `~/.npm`.
 3. **Dependency Resolution:** Runs `npm ci` for lockfile verification.
 4. **Database Migration:** Executes `npx prisma db push` to generate the testing schema.
-5. **Automated Verification:** Executes `npm test` across all 15 integration test suites. Merges are blocked if any test fails.
+5. **Automated Verification:** Executes the Vitest regression suite. The C-09 baseline is reported as 49/49 Vitest tests passed; C-11 JSON error-envelope and startup-validation checks remain planned.
 
 ### 5.3 Docker Containerization
 
@@ -229,19 +255,6 @@ The service packages into an optimized multi-stage build:
 
 * **Build Stage:** Compiles TypeScript source (`tsconfig.json`) into `/dist` via Node.js build tools.
 * **Production Stage:** Copies compiled artifacts and production-only dependencies into a minimal Alpine container, executing under an unprivileged `node` user to prevent host privilege escalation.
-
-```
-
----
-
-### Terminal Commands to Commit and Push Part C
-
-Run these commands in PowerShell to stage and push this file on your `docs/part-c-sds` branch:
-
-```powershell
-git add docs/system-sds.md
-git commit -m "docs: complete Part C System SDS with Mermaid ERD and deployment specifications"
-git push -u origin docs/part-c-sds
 
 ```
 
