@@ -29,4 +29,29 @@ describe("Lab 7 checkout due-date duration window", () => {
 
     expect(response.status).toBe(400);
   });
-});
+
+  async function checkoutIn(hours: number) {
+    const pending = await createPending(seeded.available.id, seeded.borrower.id);
+    const token = await login("custodian@ku.ac.th", passwords.custodian);
+    const dueAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    return request(app)
+      .post(`/borrow-requests/${pending.id}/checkout`)
+      .set("Authorization", bearer(token))
+      .send({ dueAt });
+  }
+
+  test("STS-CHECKOUT-007: rejects dueAt under 1 day from now with 400", async () => {
+    expect((await checkoutIn(12)).status).toBe(400);
+  });
+
+  test("STS-CHECKOUT-008: rejects dueAt just over 14 days with 400", async () => {
+    expect((await checkoutIn(14 * 24 + 1)).status).toBe(400);
+  });
+
+  test("STS-CHECKOUT-009: accepts dueAt at the 14-day upper boundary", async () => {
+    expect((await checkoutIn(14 * 24)).status).toBeLessThan(300);
+  });
+
+  test("STS-CHECKOUT-010: accepts dueAt just over the 1-day lower boundary", async () => {
+    expect((await checkoutIn(25)).status).toBeLessThan(300);
+  });});
