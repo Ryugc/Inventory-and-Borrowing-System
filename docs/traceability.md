@@ -1,5 +1,5 @@
 # Requirements-to-Features Traceability Matrix
-**Version:** v3.0
+**Version:** v3.2-lab7
 
 The matrix records the requirements, feature responsibility, sprint, verification basis, planned tests, current evidence, and result. Test identifiers below are existing identifiers; no new requirement, feature, contract, or test identifiers are introduced.
 
@@ -37,7 +37,8 @@ The matrix records the requirements, feature responsibility, sprint, verificatio
 - **C-12 (F-15 / FR-13, FR-14; CHG-01):** AC-REQ-01–04; STS-REQ-001–004 — Planned — Not Yet Executed; target 2026-12-03.
 - **CHG-02 (BR-06):** Configurable maximum loan duration — Planned — Not Yet Executed pending Lab 7 approval; target 2026-12-06.
 
-## Lab 7 Change Traceability (3.1-lab7 � CHG-03, Issue #49)
+## Lab 7 Change Traceability (v3.2-lab7, CHG-03, Issue #49)
+
 | Requirement / Rule | Feature | Baseline | AC | STS Test IDs | Target Module & Test File | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| FR-03, BR-07 (CHG-03) | F-04 Borrow Request Submission | 0.1.0 (c03ff3a) -> 0.3.0-rc1 (72fb413) | AC-QUOTA-01 to AC-QUOTA-03 | STS-QUOTA-001 to STS-QUOTA-003 | src/services/inventoryService.ts, 	ests/api/borrow-quota.test.ts | Contract Revised & Reviewed (Pre-Implementation) |
+| FR-04, BR-07 (CHG-03) | F-05 Custodian checkout due-date window | v0.1.0 (c03ff3a) -> pre-change 63f66b9 | AC-DUE-01 to AC-DUE-04 | STS-CHECKOUT-006 to STS-CHECKOUT-010 | src/services/inventoryService.ts; tests/api/borrow-quota.test.ts (file name kept from the withdrawn quota plan) | Implemented in PR #51 (9a4f5bb); contract revised after implementation |
